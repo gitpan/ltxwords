@@ -1,0 +1,13 @@
+0.02
+
+	Program is now called 'ltxwords'.
+
+	Now uses Lingua::NL::Numbers::GroeneBoekje for Dutch.
+
+	Output is now all lowercase.
+
+	Emits correct LaTeX for diacriticals.
+
+0.01
+
+	Initial release.

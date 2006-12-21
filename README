@@ -1,0 +1,15 @@
+This program generates a LaTeX sty file that defines a macro \Words
+that translates a given number into the written version. For example,
+when \thesection equals seven, \Words{section} will return the string
+"Seven".
+
+Basic usage:
+
+   $ ltxinwords --language=nl > nlwords.sty
+
+And then, from LaTeX:
+
+   UsePackage{nlwords}
+
+   ...  \Words{section} ...
+

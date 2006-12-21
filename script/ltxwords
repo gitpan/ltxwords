@@ -1,0 +1,222 @@
+#!/usr/bin/perl -w --	-*- type: cperl; coding: utf-8 -*-
+
+my $RCS_Id = '$Id: ltxwords,v 1.1 2006/03/07 11:04:49 jv Exp $ ';
+
+# Author          : Johan Vromans
+# Created On      : Fri Dec 15 15:39:46 2006
+# Last Modified By: Johan Vromans
+# Last Modified On: Thu Dec 21 15:13:50 2006
+# Update Count    : 57
+# Status          : Unknown, Use with caution!
+
+################ Common stuff ################
+
+$VERSION = '0.02';
+
+use strict;
+
+# Package name.
+my $my_package = 'Sciurix';
+# Program name and version.
+my ($my_name, $my_version) = $RCS_Id =~ /: (.+).pl,v ([\d.]+)/;
+# Tack '*' if it is not checked in into RCS.
+$my_version .= '*' if length('$Locker:  $ ') > 12;
+
+################ Command line parameters ################
+
+my $max = 20;
+my $lang;
+my $method;
+my $verbose = 0;		# more verbosity
+
+# Development options (not shown with --help).
+my $debug = 0;			# debugging
+my $trace = 0;			# trace (show process)
+my $test = 0;			# test mode.
+
+$lang = $1 if $ENV{LANG} =~ /^(\w\w)($|_)/;
+$lang ||= 'en';
+
+# Process command line options.
+app_options();
+
+# Post-processing.
+$trace |= ($debug || $test);
+
+################ Presets ################
+
+my $TMPDIR = $ENV{TMPDIR} || $ENV{TEMP} || '/usr/tmp';
+
+################ The Process ################
+
+my $mod = lc($lang) eq 'nl' ? 'Lingua::NL::Numbers::GroeneBoekje'
+  : 'Lingua::' . uc($lang) . '::Numbers';
+eval "require $mod";
+die("Cannot load module $mod\n") if $@;
+
+$method ||= "num2" . $lang;
+my $num = $mod->can($method);
+unless ( $num ) {
+    $num = sub { $mod->parse(shift) } if $mod->can("parse");
+}
+unless ( $num ) {
+    $num = sub { $mod->new(shift) } if $mod->can("new");
+}
+die("Module $mod does not provide method '$method'\n".
+    "Use --method=<name> to select another method\n") unless $num;
+
+ltxwords($max);
+
+exit 0;
+
+################ Subroutines ################
+
+sub ltxwords {
+    my ($max) = @_;
+
+    print <<'EOD';
+\newcommand{\Words}[1]{\expandafter\@Words\csname c@#1\endcsname}
+\def\@Words#1{%
+EOD
+
+    print "  \\ifcase#1", lc $num->(0), "%\n";
+
+    for my $i ( 1 .. $max ) {
+	my $res = lc $num->($i);
+	$res =~ s/ë/\\"e/g;
+	print "  \\or ", $res, "%\n";
+    }
+
+    print <<'EOD';
+  \else\@ctrerr\fi}
+EOD
+
+}
+
+################ Command Line Options ################
+
+use Getopt::Long 2.34;		# will enable help/version
+
+sub app_options {
+
+    GetOptions(ident	   => \&app_ident,
+	       verbose	   => \$verbose,
+	       # application specific options go here
+
+	       'max=i'	   => \$max,
+	       'language=s' => \$lang,
+	       'method=s'  => \$method,
+	       # development options
+	       test	   => \$test,
+	       trace	   => \$trace,
+	       debug	   => \$debug)
+      or Getopt::Long::HelpMessage(2);
+}
+
+sub app_ident {
+    print STDOUT ("This is $my_package [$my_name $my_version]\n");
+}
+
+__END__
+
+=head1 NAME
+
+ltxwords - generate LaTeX macro to convert numbers to written format
+
+=head1 SYNOPSIS
+
+  ltxwords [ options ] > inwords.sty
+
+From LaTeX:
+
+  UsePackage{inwords}
+
+  ... \Words{section} ...
+
+Options:
+
+   --language=XX        language code, defaults to $LANG
+   --max=NN             number of entries, default = 20
+   --ident		show identification
+   --help		brief help message
+   --verbose		verbose information
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--language>=I<code>
+
+ISO code of the language to generate the macro for.
+
+=item B<--max>=I<max>
+
+The highest number that should be convertible.
+
+=item B<--verbose>
+
+More verbose information.
+
+=item B<--version>
+
+Print a version identification to standard output and exits.
+
+=item B<--help>
+
+Print a brief help message to standard output and exits.
+
+=item B<--ident>
+
+Prints a program identification.
+
+=back
+
+=head1 DESCRIPTION
+
+B<inwords> writes to standard output a LaTeX sty file that defines a
+macro Words that converts a number to written format.
+
+For example, when \thesection equals seven, \Words{section} will
+return the string "Seven".
+
+Basic usage:
+
+   $ inwords --language=nl > inwords.sty
+
+And then, from LaTeX:
+
+   UsePackage{inwords}
+
+   ...  \Words{section} ...
+
+
+For each target language, it requires the corresponding
+Lingua::I<XX>::Numbers module to be installed, where I<XX> is the
+uppercased ISO code for the desired language.
+
+For Dutch, the module Lingua::NL::Numbers::GroeneBoekje is required.
+
+=head1 BUGS
+
+Due to the collective wishdom of the authors, the Lingua::*::Numbers
+modules do not have any sensible common API. They don't even follow
+the naming convention Lingua::*::Numbers!
+
+This program tries to guess a way to get the module to work, but
+there's no guarantee that it will work with your choice of language.
+Patches welcome.
+
+=head1 AUTHOR
+
+Johan Vromans <jvromans@squirrel.nl>
+
+=head1 COPYRIGHT
+
+This programs is Copyright 2006 Squirrel Consultancy.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the Perl Artistic License or the GNU General
+Public License as published by the Free Software Foundation; either
+version 2 of the License, or (at your option) any later version.
+
+=cut

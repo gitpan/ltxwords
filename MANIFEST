@@ -1,0 +1,7 @@
+CHANGES
+Makefile.PL
+MANIFEST			This list of files
+README
+script/ltxwords
+t/basic.t
+META.yml                                 Module meta-data (added by MakeMaker)
